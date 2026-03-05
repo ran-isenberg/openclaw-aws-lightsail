@@ -56,7 +56,7 @@ The Lightsail OpenClaw instance is pre-configured with:
                     │                                       │
                     │  Outputs:                             │
                     │   - DashboardUrl (https://ip/overview) │
-                    │   - NextStep (pairing instructions)   │
+                    │   - SetupGuide (setup blog post URL)  │
                     └──────────────────────────────────────┘
 ```
 
@@ -146,7 +146,7 @@ Region is configured in [`cdk/constants.py`](cdk/constants.py).
 
 | Decision | Rationale |
 |----------|-----------|
-| **DDD constructs** | Organized by business domain (`AiAgent`, `AiAgentNetworking`) not AWS resource type. See [CDK best practices](https://ranthebuilder.cloud/blog/aws-cdk-best-practices-from-the-trenches/) |
+| **DDD constructs** | Organized by business domain (`AiAgent`) not AWS resource type. See [CDK best practices](https://ranthebuilder.cloud/blog/aws-cdk-best-practices-from-the-trenches/) |
 | **Single stack** | One repo, one app, one stack |
 | **Auto snapshots** | Enabled by default for data protection |
 | **Static IP** | Stable HTTPS endpoint across instance stop/start cycles |
