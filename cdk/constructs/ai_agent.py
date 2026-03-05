@@ -16,6 +16,7 @@ DEFAULT_BUNDLE_ID = 'medium_3_0'
 class AiAgentProps:
     instance_name: str
     availability_zone: str
+    static_ip_name: str
     bundle_id: str = DEFAULT_BUNDLE_ID
     blueprint_id: str = OPENCLAW_BLUEPRINT_ID
     enable_auto_snapshot: bool = True
@@ -51,3 +52,12 @@ class AiAgent(Construct):
             bundle_id=props.bundle_id,
             add_ons=add_ons if add_ons else None,
         )
+
+        self.static_ip = lightsail.CfnStaticIp(
+            self,
+            'StaticIp',
+            static_ip_name=props.static_ip_name,
+            attached_to=props.instance_name,
+        )
+
+        self.static_ip.add_dependency(self.instance)
