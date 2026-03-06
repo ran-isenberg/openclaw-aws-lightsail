@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 
+import aws_cdk as cdk
 import aws_cdk.aws_lightsail as lightsail
 from constructs import Construct
 
@@ -11,13 +12,15 @@ OPENCLAW_BLUEPRINT_ID = 'openclaw_ls_1_0'
 # See: https://docs.aws.amazon.com/lightsail/latest/userguide/amazon-lightsail-quick-start-guide-openclaw.html
 DEFAULT_BUNDLE_ID = 'medium_3_0'
 
-# Default firewall: HTTPS only from anywhere, SSH restricted to a placeholder CIDR.
+# Default firewall: HTTPS only from anywhere, SSH restricted to RFC 5737 documentation CIDR.
+# Connections to 192.0.2.0/24 will fail loudly at the network layer — callers must set their IP.
 # Update SSH_ALLOWED_CIDRS to your IP range before deploying.
-SSH_ALLOWED_CIDRS = ['0.0.0.0/0']
+SSH_PORT = 22
+SSH_ALLOWED_CIDRS = ['192.0.2.0/24']
 
 DEFAULT_FIREWALL_RULES: list[dict] = [
     {'protocol': 'tcp', 'from_port': 443, 'to_port': 443, 'cidrs': ['0.0.0.0/0']},
-    {'protocol': 'tcp', 'from_port': 22, 'to_port': 22, 'cidrs': SSH_ALLOWED_CIDRS},
+    {'protocol': 'tcp', 'from_port': SSH_PORT, 'to_port': SSH_PORT, 'cidrs': SSH_ALLOWED_CIDRS},
 ]
 
 
@@ -29,6 +32,8 @@ class AiAgentProps:
     bundle_id: str = DEFAULT_BUNDLE_ID
     blueprint_id: str = OPENCLAW_BLUEPRINT_ID
     enable_auto_snapshot: bool = True
+    snapshot_time_of_day: str = '04:00'
+    enable_status_alarm: bool = False
     firewall_rules: list[dict] = field(default_factory=lambda: list(DEFAULT_FIREWALL_RULES))
 
 
@@ -52,7 +57,7 @@ class AiAgent(Construct):
                 lightsail.CfnInstance.AddOnProperty(
                     add_on_type='AutoSnapshot',
                     auto_snapshot_add_on_request=lightsail.CfnInstance.AutoSnapshotAddOnProperty(
-                        snapshot_time_of_day='04:00',
+                        snapshot_time_of_day=props.snapshot_time_of_day,
                     ),
                 )
             )
@@ -66,6 +71,12 @@ class AiAgent(Construct):
             )
             for rule in props.firewall_rules
         ]
+
+        for rule in props.firewall_rules:
+            if rule.get('from_port') == SSH_PORT and '0.0.0.0/0' in rule.get('cidrs', []):
+                cdk.Annotations.of(self).add_warning(
+                    'SSH port 22 is open to the world (0.0.0.0/0). Set SSH_ALLOWED_CIDRS to your IP range before deploying.'
+                )
 
         self.instance = lightsail.CfnInstance(
             self,
@@ -84,7 +95,22 @@ class AiAgent(Construct):
             self,
             'StaticIp',
             static_ip_name=props.static_ip_name,
-            attached_to=props.instance_name,
+            attached_to=self.instance.ref,
         )
 
         self.static_ip.add_dependency(self.instance)
+
+        if props.enable_status_alarm:
+            lightsail.CfnAlarm(
+                self,
+                'StatusCheckAlarm',
+                alarm_name=f'{props.instance_name}-status-check',
+                metric_name='StatusCheckFailed',
+                monitored_resource_name=props.instance_name,
+                comparison_operator='GreaterThanOrEqualToThreshold',
+                threshold=1,
+                evaluation_periods=2,
+                notification_enabled=True,
+                notification_triggers=['ALARM'],
+                contact_protocols=['Email'],
+            )
