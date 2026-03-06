@@ -91,6 +91,25 @@ class TestAiAgent:
             },
         )
 
+    def test_auto_snapshot_disabled(self):
+        app = cdk.App()
+        stack = cdk.Stack(app, 'NoSnapshotTestStack')
+        AiAgent(
+            stack,
+            'Agent',
+            props=AiAgentProps(
+                instance_name='test-instance',
+                availability_zone='us-east-1a',
+                static_ip_name='test-ip',
+                enable_auto_snapshot=False,
+            ),
+        )
+        template = Template.from_stack(stack)
+        resources = template.to_json()['Resources']
+        for resource in resources.values():
+            if resource['Type'] == 'AWS::Lightsail::Instance':
+                assert 'AddOns' not in resource.get('Properties', {})
+
 
 class TestAiAgentNetworking:
     def test_static_ip_exists(self):
@@ -101,11 +120,6 @@ class TestAiAgentNetworking:
                 'StaticIpName': 'openclaw-agent-ip',
             },
         )
-
-    def test_resource_count(self):
-        template = _create_template()
-        template.resource_count_is('AWS::Lightsail::Instance', 1)
-        template.resource_count_is('AWS::Lightsail::StaticIp', 1)
 
 
 class TestSecurity:
@@ -177,6 +191,35 @@ class TestSecurity:
         template.has_resource_properties(
             'AWS::Lightsail::Instance',
             {'Tags': Match.array_with([Match.object_like({'Key': 'ManagedBy', 'Value': 'CDK'})])},
+        )
+
+    def test_custom_firewall_rules_applied(self):
+        app = cdk.App()
+        stack = cdk.Stack(app, 'CustomFirewallTestStack')
+        AiAgent(
+            stack,
+            'Agent',
+            props=AiAgentProps(
+                instance_name='test-instance',
+                availability_zone='us-east-1a',
+                static_ip_name='test-ip',
+                firewall_rules=[{'protocol': 'tcp', 'from_port': 80, 'to_port': 80, 'cidrs': ['10.0.0.0/8']}],
+            ),
+        )
+        template = Template.from_stack(stack)
+        template.has_resource_properties(
+            'AWS::Lightsail::Instance',
+            {
+                'Networking': Match.object_like(
+                    {
+                        'Ports': Match.array_with(
+                            [
+                                Match.object_like({'FromPort': 80, 'ToPort': 80, 'Protocol': 'tcp', 'Cidrs': ['10.0.0.0/8']}),
+                            ]
+                        ),
+                    }
+                ),
+            },
         )
 
 

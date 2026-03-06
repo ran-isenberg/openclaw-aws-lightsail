@@ -11,6 +11,7 @@ class OpenClawStack(cdk.Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
+        # Requires a concrete region (passed via env in app.py); CDK token f-strings break CfnInstance.
         availability_zone = f'{self.region}a'
 
         ai_agent = AiAgent(

@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import TypedDict
 
 import aws_cdk as cdk
 import aws_cdk.aws_lightsail as lightsail
@@ -18,7 +19,15 @@ DEFAULT_BUNDLE_ID = 'medium_3_0'
 SSH_PORT = 22
 SSH_ALLOWED_CIDRS = ['192.0.2.0/24']
 
-DEFAULT_FIREWALL_RULES: list[dict] = [
+
+class FirewallRule(TypedDict, total=False):
+    protocol: str
+    from_port: int
+    to_port: int
+    cidrs: list[str]
+
+
+DEFAULT_FIREWALL_RULES: list[FirewallRule] = [
     {'protocol': 'tcp', 'from_port': 443, 'to_port': 443, 'cidrs': ['0.0.0.0/0']},
     {'protocol': 'tcp', 'from_port': SSH_PORT, 'to_port': SSH_PORT, 'cidrs': SSH_ALLOWED_CIDRS},
 ]
@@ -34,7 +43,7 @@ class AiAgentProps:
     enable_auto_snapshot: bool = True
     snapshot_time_of_day: str = '04:00'
     enable_status_alarm: bool = False
-    firewall_rules: list[dict] = field(default_factory=lambda: list(DEFAULT_FIREWALL_RULES))
+    firewall_rules: list[FirewallRule] = field(default_factory=lambda: list(DEFAULT_FIREWALL_RULES))
 
 
 class AiAgent(Construct):

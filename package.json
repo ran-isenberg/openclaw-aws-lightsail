@@ -3,7 +3,7 @@
   "private": true,
   "devDependencies": {
     "aws-cdk": "2.1109.0",
-    "markdownlint-cli": "^0.47.0"
+    "markdownlint-cli": "0.47.0"
   },
   "overrides": {
     "katex": "0.16.21"
