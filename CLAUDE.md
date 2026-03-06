@@ -99,8 +99,8 @@ make pr            # Pre-PR gate: lint + test + synth
 - **Resource tags**: `Project` and `ManagedBy` tags are applied at the app level in `app.py`.
 - **Security tests**: `TestSecurity` class validates firewall rules, resource inventory, and tag presence.
 - **Accepted risks** (documented, not fixable in CDK):
-  - Lightsail snapshots use AWS-managed encryption only (no customer-managed KMS support).
-  - Single-AZ deployment by design for cost optimization; auto-snapshots enable recovery.
+    - Lightsail snapshots use AWS-managed encryption only (no customer-managed KMS support).
+    - Single-AZ deployment by design for cost optimization; auto-snapshots enable recovery.
 
 ## Key Files to Know
 
