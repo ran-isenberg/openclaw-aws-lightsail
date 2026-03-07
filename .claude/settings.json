@@ -13,7 +13,9 @@
       }
     ]
   },
-  "allowedTools": [
-    "Bash(ruff*)"
-  ]
+  "permissions": {
+    "allow": [
+      "Bash(ruff*)"
+    ]
+  }
 }
